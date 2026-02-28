@@ -153,10 +153,15 @@ export async function generateOrderPDF(order: Order, settings: Settings): Promis
 }
 
 export async function sharePDF(pdfBytes: Uint8Array, filename: string): Promise<void> {
-  // ✅ recrée un Uint8Array "safe" (basé sur ArrayBuffer, pas ArrayBufferLike)
-  const part: BlobPart = safeBytes as unknown as BlobPart
-const blob = new Blob([part], { type: "application/pdf" })
-const file = new File([part], filename, { type: "application/pdf" })
+  const safeBytes = new Uint8Array(pdfBytes)
+
+  const buffer = safeBytes.buffer.slice(
+    safeBytes.byteOffset,
+    safeBytes.byteOffset + safeBytes.byteLength
+  ) as ArrayBuffer
+
+  const blob = new Blob([buffer], { type: "application/pdf" })
+  const file = new File([buffer], filename, { type: "application/pdf" })
 
   if (navigator.canShare?.({ files: [file] })) {
     await navigator.share({ files: [file], title: filename })
