@@ -5,17 +5,31 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: npx tsc && npx vite build
-      - uses: peaceiris/actions-gh-pages@v3
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Fix permissions (safety)
+        run: chmod -R +x node_modules/.bin || true
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
