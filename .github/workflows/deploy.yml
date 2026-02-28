@@ -19,17 +19,10 @@ jobs:
           node-version: 20
           cache: "npm"
 
-      - name: Install
-        run: npm ci
+      - run: npm ci
+      - run: npm run build
 
-      - name: Fix permissions (safety)
-        run: chmod -R +x node_modules/.bin || true
-
-      - name: Build
-        run: npm run build
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+      - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
