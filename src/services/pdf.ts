@@ -17,7 +17,7 @@ function formatCurrency(amount: number): string {
   return `${amount.toFixed(2)} €`
 }
 
-export async function generateOrderPDF(order: Order, settings: Settings): Promise<Uint8Array> {
+export async function generateOrderPDF(order: Order, settings: Settings): Promise<Uint8Array<ArrayBuffer>> {
   const pdfDoc = await PDFDocument.create()
   const page = pdfDoc.addPage([595.28, 841.89]) // A4
   const { width, height } = page.getSize()
@@ -153,7 +153,7 @@ export async function generateOrderPDF(order: Order, settings: Settings): Promis
 }
 
 export async function sharePDF(pdfBytes: Uint8Array, filename: string): Promise<void> {
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+  const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' })
   const file = new File([blob], filename, { type: 'application/pdf' })
 
   if (navigator.canShare?.({ files: [file] })) {
