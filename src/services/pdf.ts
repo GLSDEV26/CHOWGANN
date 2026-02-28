@@ -17,7 +17,8 @@ function formatCurrency(amount: number): string {
   return `${amount.toFixed(2)} €`
 }
 
-export async function generateOrderPDF(order: Order, settings: Settings): Promise<Uint8Array<ArrayBufferLike>> {  const pdfDoc = await PDFDocument.create()
+export async function generateOrderPDF(order: Order, settings: Settings): Promise<Uint8Array> { 
+  const pdfDoc = await PDFDocument.create()
   const page = pdfDoc.addPage([595.28, 841.89]) // A4
   const { width, height } = page.getSize()
 
