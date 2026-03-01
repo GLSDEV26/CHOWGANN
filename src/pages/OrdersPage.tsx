@@ -1,7 +1,7 @@
 // src/pages/OrdersPage.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getOrders } from '../db/database'
+import { getOrders, deleteOrder } from '../db/database'
 import type { Order, OrderStatus } from '../types'
 import { STATUS_LABELS, STATUS_COLORS } from '../types'
 
@@ -20,13 +20,23 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState<OrderStatus | 'all'>('all')
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    getOrders().then(setOrders)
-  }, [])
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setOrders(await getOrders())
+  }
+
+  async function handleDelete(e: React.MouseEvent, order: Order) {
+    e.stopPropagation()
+    if (!confirm(`Supprimer la commande ${order.orderNumber} ?`)) return
+    await deleteOrder(order.id!)
+    load()
+  }
 
   const filtered = orders.filter(o => {
     const matchStatus = filter === 'all' || o.status === filter
-    const matchSearch = !search || o.customerName.toLowerCase().includes(search.toLowerCase()) ||
+    const matchSearch = !search ||
+      o.customerName.toLowerCase().includes(search.toLowerCase()) ||
       o.orderNumber.toLowerCase().includes(search.toLowerCase())
     return matchStatus && matchSearch
   })
@@ -34,7 +44,7 @@ export default function OrdersPage() {
   return (
     <div className="flex flex-col h-full safe-top">
       <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Commandes</h1>
+        <h1 className="text-xl font-bold">Commandes ({orders.length})</h1>
         <button onClick={() => navigate('/orders/new')} className="text-accent font-bold text-sm">+ Nouvelle</button>
       </div>
 
@@ -42,8 +52,7 @@ export default function OrdersPage() {
         <input placeholder="Rechercher…" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 overflow-x-auto px-5 pb-3 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto px-5 pb-3">
         {FILTER_OPTIONS.map(opt => (
           <button
             key={opt.value}
@@ -65,31 +74,38 @@ export default function OrdersPage() {
           </div>
         ) : (
           filtered.map(order => (
-            <button
-              key={order.id}
-              onClick={() => navigate(`/orders/${order.id}`)}
-              className="card w-full text-left active:scale-98 transition-transform"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="font-bold">{order.customerName}</p>
-                  <p className="text-text-muted text-xs mt-0.5">{order.orderNumber}</p>
+            <div key={order.id} className="card flex items-center gap-2">
+              <button
+                onClick={() => navigate(`/orders/${order.id}`)}
+                className="flex-1 text-left"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold">{order.customerName}</p>
+                    <p className="text-text-muted text-xs mt-0.5">{order.orderNumber}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-accent">{order.totalAmount.toFixed(2)} €</p>
+                    <span
+                      className="badge text-xs mt-1 inline-block"
+                      style={{ backgroundColor: STATUS_COLORS[order.status] + '33', color: STATUS_COLORS[order.status] }}
+                    >
+                      {STATUS_LABELS[order.status]}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-accent">{order.totalAmount.toFixed(2)} €</p>
-                  <span
-                    className="badge text-white mt-1 inline-block"
-                    style={{ backgroundColor: STATUS_COLORS[order.status] + '33', color: STATUS_COLORS[order.status] }}
-                  >
-                    {STATUS_LABELS[order.status]}
-                  </span>
-                </div>
-              </div>
-              <p className="text-text-muted text-xs mt-2">
-                {new Date(order.createdAt).toLocaleDateString('fr-FR')}
-                {order.items.length > 0 && ` · ${order.items.length} article${order.items.length > 1 ? 's' : ''}`}
-              </p>
-            </button>
+                <p className="text-text-muted text-xs mt-2">
+                  {new Date(order.createdAt).toLocaleDateString('fr-FR')}
+                  {order.items.length > 0 && ` · ${order.items.length} article${order.items.length > 1 ? 's' : ''}`}
+                </p>
+              </button>
+              <button
+                onClick={(e) => handleDelete(e, order)}
+                className="text-red-400 text-xl px-2 flex-shrink-0"
+              >
+                🗑
+              </button>
+            </div>
           ))
         )}
       </div>

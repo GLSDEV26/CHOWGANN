@@ -22,9 +22,7 @@ export default function OrderDetailPage() {
       setOrder(o || null)
       if (o?.paymentMethod === 'transfer') setShowQR(true)
     })
-    getSettings().then(s => {
-      setSettings(s)
-    })
+    getSettings().then(setSettings)
   }, [id])
 
   useEffect(() => {
@@ -43,12 +41,35 @@ export default function OrderDetailPage() {
     setOrder(updated)
   }
 
+  async function handleDelete() {
+    if (!order) return
+    if (!confirm('Supprimer cette commande définitivement ?')) return
+    await db.orders.delete(order.id!)
+    navigate('/orders')
+  }
+
   async function handlePDF() {
     if (!order || !settings) return
     setPdfLoading(true)
     try {
       const pdfBytes = await generateOrderPDF(order, settings)
-      await sharePDF(pdfBytes, `${order.orderNumber}.pdf`)
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const filename = `${order.orderNumber}.pdf`
+      const file = new File([blob], filename, { type: 'application/pdf' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      alert('Erreur PDF : ' + e)
     } finally {
       setPdfLoading(false)
     }
@@ -87,13 +108,15 @@ export default function OrderDetailPage() {
             {STATUS_LABELS[order.status]}
           </span>
         </div>
-        <button onClick={handlePDF} disabled={pdfLoading} className="text-accent text-sm font-bold">
+        <button onClick={handlePDF} disabled={pdfLoading} className="text-accent text-sm font-bold px-2">
           {pdfLoading ? '…' : '📄 PDF'}
+        </button>
+        <button onClick={handleDelete} className="text-red-400 text-sm font-bold px-2">
+          🗑 Suppr
         </button>
       </div>
 
       <div className="scroll-area flex-1 px-5 py-4 space-y-4">
-        {/* Client */}
         <div className="card">
           <p className="text-text-muted text-xs mb-1">Client</p>
           <p className="font-bold text-lg">{order.customerName}</p>
@@ -103,7 +126,6 @@ export default function OrderDetailPage() {
           </p>
         </div>
 
-        {/* Items */}
         <div className="card space-y-2">
           <p className="text-accent font-bold mb-2">Articles</p>
           {order.items.map((item, i) => (
@@ -135,7 +157,6 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Virement info */}
         {order.paymentMethod === 'transfer' && settings?.iban && (
           <div className="card border border-accent/20">
             <p className="text-accent font-bold mb-3">Virement bancaire</p>
@@ -159,21 +180,15 @@ export default function OrderDetailPage() {
           </div>
         )}
 
-        {/* Actions */}
         {nextAction && (
-          <button
-            onClick={() => changeStatus(nextAction.to)}
-            className="btn-gold"
-          >
+          <button onClick={() => changeStatus(nextAction.to)} className="btn-gold">
             {nextAction.label}
           </button>
         )}
 
         {order.status !== 'cancelled' && order.status !== 'delivered' && (
-          <button
-            onClick={() => changeStatus('cancelled')}
-            className="w-full border border-red-500/30 text-red-400 py-3 rounded-2xl text-sm font-medium"
-          >
+          <button onClick={() => changeStatus('cancelled')}
+            className="w-full border border-red-500/30 text-red-400 py-3 rounded-2xl text-sm font-medium">
             Annuler la commande
           </button>
         )}
