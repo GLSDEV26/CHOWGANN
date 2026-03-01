@@ -1,6 +1,7 @@
 // src/types/index.ts
 
-export type OrderStatus = 'draft' | 'pending' | 'paid' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'paid' | 'delivered' | 'cancelled'
+export type SupplierStatus = 'to_order' | 'ordered' | 'delivered_to_client'
 export type PaymentMethod = 'cash' | 'transfer' | 'card' | 'pending'
 
 export interface Product {
