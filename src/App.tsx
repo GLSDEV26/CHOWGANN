@@ -1,5 +1,6 @@
 // src/App.tsx
-import { HashRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import DashboardPage from './pages/DashboardPage'
 import OrdersPage from './pages/OrdersPage'
 import NewOrderPage from './pages/NewOrderPage'
@@ -17,25 +18,46 @@ const tabs = [
   { to: '/settings', label: 'Réglages', icon: '⚙️' },
 ]
 
+function AnimatedRoutes() {
+  const location = useLocation()
+  const [displayLocation, setDisplayLocation] = useState(location)
+  const [transitionStage, setTransitionStage] = useState('fadeIn')
+
+  useEffect(() => {
+    if (location !== displayLocation) {
+      setTransitionStage('fadeOut')
+    }
+  }, [location])
+
+  return (
+    <div
+      className={`flex-1 overflow-hidden ${transitionStage}`}
+      onAnimationEnd={() => {
+        if (transitionStage === 'fadeOut') {
+          setDisplayLocation(location)
+          setTransitionStage('fadeIn')
+        }
+      }}
+    >
+      <Routes location={displayLocation}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/orders/new" element={<NewOrderPage />} />
+        <Route path="/orders/:id" element={<OrderDetailPage />} />
+        <Route path="/customers" element={<CustomersPage />} />
+        <Route path="/customers/:id" element={<CustomerDetailPage />} />
+        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Routes>
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <HashRouter>
       <div className="flex flex-col h-full">
-        {/* Main content */}
-        <div className="flex-1 overflow-hidden">
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/orders/new" element={<NewOrderPage />} />
-            <Route path="/orders/:id" element={<OrderDetailPage />} />
-            <Route path="/customers" element={<CustomersPage />} />
-            <Route path="/customers/:id" element={<CustomerDetailPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
-        </div>
-
-        {/* Tab Bar */}
+        <AnimatedRoutes />
         <nav className="bg-bg-secondary border-t border-bg-tertiary tab-bar">
           <div className="flex justify-around">
             {tabs.map(tab => (
@@ -44,8 +66,8 @@ export default function App() {
                 to={tab.to}
                 end={tab.to === '/'}
                 className={({ isActive }) =>
-                  `flex flex-col items-center py-2 px-3 min-w-[60px] transition-colors ${
-                    isActive ? 'text-accent' : 'text-text-muted'
+                  `flex flex-col items-center py-2 px-3 min-w-[60px] transition-all duration-200 ${
+                    isActive ? 'text-accent scale-110' : 'text-text-muted'
                   }`
                 }
               >
@@ -55,6 +77,10 @@ export default function App() {
             ))}
           </div>
         </nav>
+      </div>
+    </HashRouter>
+  )
+}
       </div>
     </HashRouter>
   )
