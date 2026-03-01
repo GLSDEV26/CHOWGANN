@@ -56,6 +56,7 @@ export interface Order {
   updatedAt: string
   paidAt?: string
   deliveredAt?: string
+  supplierStatus?: SupplierStatus
 }
 
 export interface Settings {
@@ -78,12 +79,31 @@ export interface BackupPayload {
 }
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
-  draft: 'Brouillon',
   pending: 'En attente paiement',
   paid: 'Payée',
   delivered: 'Livrée',
   cancelled: 'Annulée',
 }
+
+export const STATUS_COLORS: Record<OrderStatus, string> = {
+  pending: '#FF9800',
+  paid: '#4CAF50',
+  delivered: '#2196F3',
+  cancelled: '#F44336',
+}
+
+export const SUPPLIER_LABELS: Record<string, string> = {
+  to_order: '⏳ À commander',
+  ordered: '📦 Commandée',
+  delivered_to_client: '✅ Livrée au client',
+}
+
+export const SUPPLIER_COLORS: Record<string, string> = {
+  to_order: '#FF9800',
+  ordered: '#2196F3',
+  delivered_to_client: '#4CAF50',
+}
+
 
 export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   cash: 'Espèces',
