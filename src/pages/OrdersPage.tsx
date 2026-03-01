@@ -46,19 +46,19 @@ export default function OrdersPage() {
     const next: Record<string, SupplierStatus> = {
       to_order: 'ordered',
       ordered: 'delivered_to_client',
-     }
-  async function resetSupplierStatus(e: React.MouseEvent, order: Order) {
-  e.stopPropagation()
-  await upsertOrder({ ...order, supplierStatus: 'to_order', updatedAt: now() })
-  load()
-}
+    }
     const current = order.supplierStatus || 'to_order'
     if (current === 'delivered_to_client') return
     await upsertOrder({ ...order, supplierStatus: next[current], updatedAt: now() })
     load()
   }
 
-  // Commandes visibles dans l'onglet fournisseur = payées ou livrées
+  async function resetSupplierStatus(e: React.MouseEvent, order: Order) {
+    e.stopPropagation()
+    await upsertOrder({ ...order, supplierStatus: 'to_order', updatedAt: now() })
+    load()
+  }
+
   const supplierOrders = orders.filter(o => o.status === 'paid' || o.status === 'delivered')
 
   const filteredClient = orders.filter(o => {
@@ -82,13 +82,11 @@ export default function OrdersPage() {
 
   return (
     <div className="flex flex-col h-full safe-top">
-      {/* Header */}
       <div className="px-5 pt-4 pb-2 flex items-center justify-between">
         <h1 className="text-xl font-bold">Commandes</h1>
         <button onClick={() => navigate('/orders/new')} className="text-accent font-bold text-sm">+ Nouvelle</button>
       </div>
 
-      {/* Tabs Client / Fournisseur */}
       <div className="flex mx-5 mb-3 bg-bg-tertiary rounded-2xl p-1">
         <button
           onClick={() => setTab('client')}
@@ -113,12 +111,10 @@ export default function OrdersPage() {
         </button>
       </div>
 
-      {/* Search */}
       <div className="px-5 mb-2">
         <input placeholder="Rechercher…" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
-      {/* ── Onglet CLIENT ─────────────────────────────────────────── */}
       {tab === 'client' && (
         <>
           <div className="flex gap-2 overflow-x-auto px-5 pb-3">
@@ -171,38 +167,21 @@ export default function OrdersPage() {
         </>
       )}
 
-      {/* ── Onglet FOURNISSEUR ────────────────────────────────────── */}
       {tab === 'supplier' && (
         <>
-          {/* Statut fournisseur + boutons */}
-<div className="flex items-center justify-between gap-2">
-  <span className="text-sm font-bold" style={{ color: SUPPLIER_COLORS[supStatus] }}>
-    {SUPPLIER_LABELS[supStatus]}
-  </span>
-  <div className="flex gap-2">
-    {!isDone && (
-      <button
-        onClick={(e) => advanceSupplierStatus(e, order)}
-        className="bg-accent text-bg-primary text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform"
-      >
-        {supStatus === 'to_order' ? '📦 Commandée' : '✅ Livrée'}
-      </button>
-    )}
-    <button
-      onClick={(e) => resetSupplierStatus(e, order)}
-      className="bg-bg-tertiary text-text-secondary text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform"
-    >
-      ↩️
-    </button>
-    <button
-      onClick={(e) => handleDelete(e, order)}
-      className="text-red-400 text-xl px-2"
-    >
-      🗑
-    </button>
-  </div>
-</div>
-
+          <div className="flex gap-2 overflow-x-auto px-5 pb-3">
+            {SUPPLIER_FILTERS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setSupplierFilter(opt.value)}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  supplierFilter === opt.value ? 'bg-accent text-bg-primary' : 'bg-bg-tertiary text-text-secondary'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
           <div className="scroll-area flex-1 px-5 space-y-3 pb-4">
             {filteredSupplier.length === 0 ? (
@@ -217,7 +196,6 @@ export default function OrdersPage() {
                 return (
                   <div key={order.id} className="card space-y-3"
                     style={{ borderLeft: `3px solid ${SUPPLIER_COLORS[supStatus]}` }}>
-                    {/* Infos commande */}
                     <button onClick={() => navigate(`/orders/${order.id}`)} className="w-full text-left">
                       <div className="flex justify-between items-start">
                         <div>
@@ -228,7 +206,6 @@ export default function OrdersPage() {
                       </div>
                     </button>
 
-                    {/* Produits à commander */}
                     <div className="bg-bg-tertiary rounded-xl p-3 space-y-1">
                       {order.items.map((item, i) => (
                         <div key={i} className="flex justify-between text-sm">
@@ -238,19 +215,33 @@ export default function OrdersPage() {
                       ))}
                     </div>
 
-                    {/* Statut fournisseur + bouton avancer */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-bold" style={{ color: SUPPLIER_COLORS[supStatus] }}>
                         {SUPPLIER_LABELS[supStatus]}
                       </span>
-                      {!isDone && (
+                      <div className="flex gap-2">
+                        {!isDone && (
+                          <button
+                            onClick={(e) => advanceSupplierStatus(e, order)}
+                            className="bg-accent text-bg-primary text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform"
+                          >
+                            {supStatus === 'to_order' ? '📦 Commandée' : '✅ Livrée'}
+                          </button>
+                        )}
                         <button
-                          onClick={(e) => advanceSupplierStatus(e, order)}
-                          className="bg-accent text-bg-primary text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform"
+                          onClick={(e) => resetSupplierStatus(e, order)}
+                          className="bg-bg-tertiary text-text-secondary text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform"
+                          title="Réinitialiser"
                         >
-                          {supStatus === 'to_order' ? '📦 Marquer Commandée' : '✅ Marquer Livrée'}
+                          ↩️
                         </button>
-                      )}
+                        <button
+                          onClick={(e) => handleDelete(e, order)}
+                          className="text-red-400 text-xl px-1"
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )
