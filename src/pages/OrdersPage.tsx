@@ -46,6 +46,13 @@ export default function OrdersPage() {
     const next: Record<string, SupplierStatus> = {
       to_order: 'ordered',
       ordered: 'delivered_to_client',
+     } 
+  async function resetSupplierStatus(e: React.MouseEvent, order: Order) {
+  e.stopPropagation()
+  await upsertOrder({ ...order, supplierStatus: 'to_order', updatedAt: now() })
+  load()
+}
+
     }
     const current = order.supplierStatus || 'to_order'
     if (current === 'delivered_to_client') return
@@ -169,19 +176,35 @@ export default function OrdersPage() {
       {/* ── Onglet FOURNISSEUR ────────────────────────────────────── */}
       {tab === 'supplier' && (
         <>
-          <div className="flex gap-2 overflow-x-auto px-5 pb-3">
-            {SUPPLIER_FILTERS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setSupplierFilter(opt.value)}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  supplierFilter === opt.value ? 'bg-accent text-bg-primary' : 'bg-bg-tertiary text-text-secondary'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          {/* Statut fournisseur + boutons */}
+<div className="flex items-center justify-between gap-2">
+  <span className="text-sm font-bold" style={{ color: SUPPLIER_COLORS[supStatus] }}>
+    {SUPPLIER_LABELS[supStatus]}
+  </span>
+  <div className="flex gap-2">
+    {!isDone && (
+      <button
+        onClick={(e) => advanceSupplierStatus(e, order)}
+        className="bg-accent text-bg-primary text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform"
+      >
+        {supStatus === 'to_order' ? '📦 Commandée' : '✅ Livrée'}
+      </button>
+    )}
+    <button
+      onClick={(e) => resetSupplierStatus(e, order)}
+      className="bg-bg-tertiary text-text-secondary text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform"
+    >
+      ↩️
+    </button>
+    <button
+      onClick={(e) => handleDelete(e, order)}
+      className="text-red-400 text-xl px-2"
+    >
+      🗑
+    </button>
+  </div>
+</div>
+
 
           <div className="scroll-area flex-1 px-5 space-y-3 pb-4">
             {filteredSupplier.length === 0 ? (
