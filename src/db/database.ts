@@ -10,12 +10,12 @@ class ChoganDB extends Dexie {
 
   constructor() {
     super('ChoganVDI')
-    this.version(1).stores({
-      products: '++id, reference, family, isActive, createdAt',
-      customers: '++id, lastName, firstName, phone, email, createdAt',
-      orders: '++id, orderNumber, status, paymentMethod, customerId, createdAt',
-      settings: '++id',
-    })
+    this.version(2).stores({
+  products: '++id, name, reference, family, isActive, createdAt, updatedAt, price',
+  customers: '++id, lastName, firstName, phone, email, createdAt, updatedAt',
+  orders: '++id, orderNumber, status, paymentMethod, customerId, createdAt, updatedAt',
+  settings: '++id',
+})
   }
 }
 
