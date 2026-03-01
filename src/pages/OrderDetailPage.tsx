@@ -2,10 +2,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db, upsertOrder, now, getSettings } from '../db/database'
-import type { Order, OrderStatus, Settings } from '../types'
-import { STATUS_LABELS, STATUS_COLORS, PAYMENT_LABELS } from '../types'
-import { generateOrderPDF, sharePDF } from '../services/pdf'
-import { generateEPCQRCode } from '../services/qrcode'
+import type { Order, OrderStatus, Settings, SupplierStatus } from '../types'
+import { STATUS_LABELS, STATUS_COLORS, PAYMENT_LABELS, SUPPLIER_LABELS, SUPPLIER_COLORS } from '../types'
+import { generateOrderPDF } from '../services/pdf'
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -27,16 +26,34 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (showQR && settings?.iban && order) {
-      generateEPCQRCode(settings.iban, settings.bic, settings.beneficiaryName || settings.ownerName, order.totalAmount)
-        .then(setQrCode)
+      import('../services/qrcode').then(({ generateEPCQRCode }) => {
+        generateEPCQRCode(settings.iban, settings.bic, settings.beneficiaryName || settings.ownerName, order.totalAmount)
+          .then(setQrCode)
+      })
     }
   }, [showQR, settings, order])
 
   async function changeStatus(status: OrderStatus) {
     if (!order) return
     const updated = { ...order, status, updatedAt: now() }
-    if (status === 'paid') updated.paidAt = now()
+    if (status === 'paid') {
+      updated.paidAt = now()
+      if (!updated.supplierStatus) updated.supplierStatus = 'to_order'
+    }
     if (status === 'delivered') updated.deliveredAt = now()
+    await upsertOrder(updated)
+    setOrder(updated)
+  }
+
+  async function advanceSupplierStatus() {
+    if (!order) return
+    const next: Record<string, SupplierStatus> = {
+      to_order: 'ordered',
+      ordered: 'delivered_to_client',
+    }
+    const current = order.supplierStatus || 'to_order'
+    if (current === 'delivered_to_client') return
+    const updated = { ...order, supplierStatus: next[current] as SupplierStatus, updatedAt: now() }
     await upsertOrder(updated)
     setOrder(updated)
   }
@@ -49,19 +66,31 @@ export default function OrderDetailPage() {
   }
 
   async function handlePDF() {
-  if (!order || !settings) return
-  setPdfLoading(true)
-  try {
-    const pdfBytes = await generateOrderPDF(order, settings)
-    const filename = `${order.orderNumber}.pdf`
-    await sharePDF(pdfBytes, filename)
-  } catch (e) {
-    console.error(e)
-    alert("Erreur lors de l'export PDF")
-  } finally {
-    setPdfLoading(false)
+    if (!order || !settings) return
+    setPdfLoading(true)
+    try {
+      const pdfBytes = await generateOrderPDF(order, settings)
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const filename = `${order.orderNumber}.pdf`
+      const file = new File([blob], filename, { type: 'application/pdf' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      alert('Erreur PDF : ' + e)
+    } finally {
+      setPdfLoading(false)
+    }
   }
-}
 
   function copyIBAN() {
     if (!settings?.iban) return
@@ -70,40 +99,37 @@ export default function OrderDetailPage() {
   }
 
   if (!order) return (
-    <div className="flex items-center justify-center h-full text-text-muted">
-      Chargement…
-    </div>
+    <div className="flex items-center justify-center h-full text-text-muted">Chargement…</div>
   )
 
   const nextStatuses: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
     pending: { to: 'paid', label: '✓ Marquer Payée' },
-    paid: { to: 'delivered', label: '📦 Marquer Livrée' },
+    paid: { to: 'delivered', label: '🚚 Marquer Livrée' },
   }
-
   const nextAction = nextStatuses[order.status]
+  const supStatus = order.supplierStatus || 'to_order'
+  const showSupplier = order.status === 'paid' || order.status === 'delivered'
 
   return (
     <div className="flex flex-col h-full safe-top">
+      {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-bg-tertiary">
         <button onClick={() => navigate(-1)} className="text-accent text-xl">←</button>
         <div className="flex-1">
           <h1 className="font-bold">{order.orderNumber}</h1>
-          <span
-            className="badge text-xs"
-            style={{ backgroundColor: STATUS_COLORS[order.status] + '22', color: STATUS_COLORS[order.status] }}
-          >
+          <span className="badge text-xs"
+            style={{ backgroundColor: STATUS_COLORS[order.status] + '22', color: STATUS_COLORS[order.status] }}>
             {STATUS_LABELS[order.status]}
           </span>
         </div>
         <button onClick={handlePDF} disabled={pdfLoading} className="text-accent text-sm font-bold px-2">
           {pdfLoading ? '…' : '📄 PDF'}
         </button>
-        <button onClick={handleDelete} className="text-red-400 text-sm font-bold px-2">
-          🗑 Suppr
-        </button>
+        <button onClick={handleDelete} className="text-red-400 text-sm font-bold px-2">🗑</button>
       </div>
 
       <div className="scroll-area flex-1 px-5 py-4 space-y-4">
+        {/* Client */}
         <div className="card">
           <p className="text-text-muted text-xs mb-1">Client</p>
           <p className="font-bold text-lg">{order.customerName}</p>
@@ -113,6 +139,7 @@ export default function OrderDetailPage() {
           </p>
         </div>
 
+        {/* Articles */}
         <div className="card space-y-2">
           <p className="text-accent font-bold mb-2">Articles</p>
           {order.items.map((item, i) => (
@@ -128,13 +155,11 @@ export default function OrderDetailPage() {
           ))}
           <div className="border-t border-bg-tertiary pt-2 space-y-1">
             <div className="flex justify-between text-sm text-text-muted">
-              <span>Sous-total</span>
-              <span>{order.subtotal.toFixed(2)} €</span>
+              <span>Sous-total</span><span>{order.subtotal.toFixed(2)} €</span>
             </div>
             {order.totalDiscount > 0 && (
               <div className="flex justify-between text-sm text-text-muted">
-                <span>Remise</span>
-                <span>− {order.totalDiscount.toFixed(2)} €</span>
+                <span>Remise</span><span>− {order.totalDiscount.toFixed(2)} €</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-lg">
@@ -144,18 +169,39 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* Statut fournisseur — visible seulement si commande payée */}
+        {showSupplier && (
+          <div className="card" style={{ borderLeft: `3px solid ${SUPPLIER_COLORS[supStatus]}` }}>
+            <p className="text-text-muted text-xs mb-2">Suivi fournisseur</p>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-sm" style={{ color: SUPPLIER_COLORS[supStatus] }}>
+                {SUPPLIER_LABELS[supStatus]}
+              </span>
+              {supStatus !== 'delivered_to_client' && (
+                <button onClick={advanceSupplierStatus}
+                  className="bg-accent text-bg-primary text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform">
+                  {supStatus === 'to_order' ? '📦 Marquer Commandée' : '✅ Marquer Livrée'}
+                </button>
+              )}
+            </div>
+            {/* Barre de progression */}
+            <div className="flex gap-1 mt-3">
+              {(['to_order', 'ordered', 'delivered_to_client'] as SupplierStatus[]).map((s, i) => (
+                <div key={i} className="flex-1 h-1.5 rounded-full transition-colors"
+                  style={{ backgroundColor: ['to_order', 'ordered', 'delivered_to_client'].indexOf(supStatus) >= i ? SUPPLIER_COLORS[supStatus] : '#2A2A2A' }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Virement */}
         {order.paymentMethod === 'transfer' && settings?.iban && (
           <div className="card border border-accent/20">
             <p className="text-accent font-bold mb-3">Virement bancaire</p>
-            <div className="bg-bg-tertiary rounded-xl p-3 mb-3 font-mono text-sm break-all">
-              {settings.iban}
-            </div>
+            <div className="bg-bg-tertiary rounded-xl p-3 mb-3 font-mono text-sm break-all">{settings.iban}</div>
             <div className="flex gap-2">
-              <button onClick={copyIBAN} className="flex-1 bg-bg-tertiary rounded-xl py-3 text-sm font-medium">
-                📋 Copier IBAN
-              </button>
-              <button onClick={() => setShowQR(prev => !prev)}
-                className="flex-1 bg-bg-tertiary rounded-xl py-3 text-sm font-medium">
+              <button onClick={copyIBAN} className="flex-1 bg-bg-tertiary rounded-xl py-3 text-sm font-medium">📋 Copier IBAN</button>
+              <button onClick={() => setShowQR(prev => !prev)} className="flex-1 bg-bg-tertiary rounded-xl py-3 text-sm font-medium">
                 {showQR ? 'Masquer QR' : '📲 QR Code'}
               </button>
             </div>
@@ -167,6 +213,7 @@ export default function OrderDetailPage() {
           </div>
         )}
 
+        {/* Action statut suivant */}
         {nextAction && (
           <button onClick={() => changeStatus(nextAction.to)} className="btn-gold">
             {nextAction.label}
