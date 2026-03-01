@@ -14,7 +14,9 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: ./node_modules/.bin/tsc --noEmit || true && ./node_modules/.bin/vite build
+      - run: npm run build
+        env:
+          CI: false
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
