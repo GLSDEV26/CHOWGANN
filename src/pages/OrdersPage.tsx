@@ -46,14 +46,12 @@ export default function OrdersPage() {
     const next: Record<string, SupplierStatus> = {
       to_order: 'ordered',
       ordered: 'delivered_to_client',
-     } 
+     }
   async function resetSupplierStatus(e: React.MouseEvent, order: Order) {
   e.stopPropagation()
   await upsertOrder({ ...order, supplierStatus: 'to_order', updatedAt: now() })
   load()
 }
-
-    }
     const current = order.supplierStatus || 'to_order'
     if (current === 'delivered_to_client') return
     await upsertOrder({ ...order, supplierStatus: next[current], updatedAt: now() })
