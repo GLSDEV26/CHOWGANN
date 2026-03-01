@@ -10,7 +10,6 @@ const FILTER_OPTIONS: { value: OrderStatus | 'all'; label: string }[] = [
   { value: 'pending', label: 'En attente' },
   { value: 'paid', label: 'Payées' },
   { value: 'delivered', label: 'Livrées' },
-  { value: 'draft', label: 'Brouillons' },
   { value: 'cancelled', label: 'Annulées' },
 ]
 
