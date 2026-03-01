@@ -76,7 +76,6 @@ export default function OrderDetailPage() {
   )
 
   const nextStatuses: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
-    draft: { to: 'pending', label: 'Envoyer en attente' },
     pending: { to: 'paid', label: '✓ Marquer Payée' },
     paid: { to: 'delivered', label: '📦 Marquer Livrée' },
   }
