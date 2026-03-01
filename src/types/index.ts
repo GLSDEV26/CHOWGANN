@@ -113,7 +113,6 @@ export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
 }
 
 export const STATUS_COLORS: Record<OrderStatus, string> = {
-  draft: '#666666',
   pending: '#FF9800',
   paid: '#4CAF50',
   delivered: '#2196F3',
