@@ -31,7 +31,8 @@ function AnimatedRoutes() {
 
   return (
     <div
-      className={`flex-1 overflow-hidden ${transitionStage}`}
+      className={transitionStage}
+      style={{ flex: 1, overflow: 'hidden' }}
       onAnimationEnd={() => {
         if (transitionStage === 'fadeOut') {
           setDisplayLocation(location)
@@ -56,7 +57,7 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <HashRouter>
-      <div className="flex flex-col h-full">
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <AnimatedRoutes />
         <nav className="bg-bg-secondary border-t border-bg-tertiary tab-bar">
           <div className="flex justify-around">
@@ -79,9 +80,5 @@ export default function App() {
         </nav>
       </div>
     </HashRouter>
-  )
-}
-      </div>
-     </HashRouter>
   )
 }
