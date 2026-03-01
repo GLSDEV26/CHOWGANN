@@ -41,12 +41,16 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function getActiveProducts(): Promise<Product[]> {
-  return db.products.where('isActive').equals(1).sortBy('name')
+  // undefined = actif ; seul false = inactif
+  return db.products
+    .filter(p => p.isActive !== false)
+    .sortBy('name')
 }
 
 export async function upsertProduct(product: Product): Promise<number> {
   product.updatedAt = now()
   if (!product.createdAt) product.createdAt = now()
+  if (product.isActive === undefined) product.isActive = true  // ✅ important
   return db.products.put(product)
 }
 
