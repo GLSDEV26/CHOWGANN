@@ -49,31 +49,19 @@ export default function OrderDetailPage() {
   }
 
   async function handlePDF() {
-    if (!order || !settings) return
-    setPdfLoading(true)
-    try {
-      const pdfBytes = await generateOrderPDF(order, settings)
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
-      const filename = `${order.orderNumber}.pdf`
-      const file = new File([blob], filename, { type: 'application/pdf' })
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: filename })
-      } else {
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-      }
-    } catch (e) {
-      alert('Erreur PDF : ' + e)
-    } finally {
-      setPdfLoading(false)
-    }
+  if (!order || !settings) return
+  setPdfLoading(true)
+  try {
+    const pdfBytes = await generateOrderPDF(order, settings)
+    const filename = `${order.orderNumber}.pdf`
+    await sharePDF(pdfBytes, filename)
+  } catch (e) {
+    console.error(e)
+    alert("Erreur lors de l'export PDF")
+  } finally {
+    setPdfLoading(false)
   }
+}
 
   function copyIBAN() {
     if (!settings?.iban) return
