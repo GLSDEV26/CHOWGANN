@@ -107,8 +107,8 @@ export async function generateOrderPDF(order: Order, settings: Settings): Promis
 
   page.drawText('Merci pour votre commande', { x: width / 2 - 70, y: 30, size: 9, font: fontReg, color: GRAY })
 
-  const pdfBytes = await pdfDoc.save()
-  return pdfBytes
+ const pdfBytes = await pdfDoc.save()
+return pdfBytes as unknown as Uint8Array
 }
 
 export async function sharePDF(pdfBytes: Uint8Array, filename: string): Promise<void> {
