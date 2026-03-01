@@ -70,7 +70,7 @@ export default function OrderDetailPage() {
     setPdfLoading(true)
     try {
       const pdfBytes = await generateOrderPDF(order, settings)
-      const blob = new Blob([pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength)], { type: 'application/pdf' })
+      const blob = new Blob([new Uint8Array(pdfBytes) as unknown as BlobPart], { type: 'application/pdf' })
       const filename = `${order.orderNumber}.pdf`
       const file = new File([blob], filename, { type: 'application/pdf' })
       if (navigator.canShare?.({ files: [file] })) {
