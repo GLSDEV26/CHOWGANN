@@ -1,8 +1,7 @@
 // src/types/index.ts
-
 export type OrderStatus = 'pending' | 'paid' | 'delivered' | 'cancelled'
-export type SupplierStatus = 'to_order' | 'ordered' | 'delivered_to_client'
 export type PaymentMethod = 'cash' | 'transfer' | 'card' | 'pending'
+export type SupplierStatus = 'to_order' | 'ordered' | 'delivered_to_client'
 
 export interface Product {
   id?: number
@@ -85,26 +84,6 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: 'Annulée',
 }
 
-export const STATUS_COLORS: Record<OrderStatus, string> = {
-  pending: '#FF9800',
-  paid: '#4CAF50',
-  delivered: '#2196F3',
-  cancelled: '#F44336',
-}
-
-export const SUPPLIER_LABELS: Record<string, string> = {
-  to_order: '⏳ À commander',
-  ordered: '📦 Commandée',
-  delivered_to_client: '✅ Livrée au client',
-}
-
-export const SUPPLIER_COLORS: Record<string, string> = {
-  to_order: '#FF9800',
-  ordered: '#2196F3',
-  delivered_to_client: '#4CAF50',
-}
-
-
 export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   cash: 'Espèces',
   transfer: 'Virement',
@@ -117,4 +96,16 @@ export const STATUS_COLORS: Record<OrderStatus, string> = {
   paid: '#4CAF50',
   delivered: '#2196F3',
   cancelled: '#F44336',
+}
+
+export const SUPPLIER_LABELS: Record<SupplierStatus, string> = {
+  to_order: '⏳ À commander',
+  ordered: '📦 Commandée',
+  delivered_to_client: '✅ Livrée au client',
+}
+
+export const SUPPLIER_COLORS: Record<SupplierStatus, string> = {
+  to_order: '#FF9800',
+  ordered: '#2196F3',
+  delivered_to_client: '#4CAF50',
 }
