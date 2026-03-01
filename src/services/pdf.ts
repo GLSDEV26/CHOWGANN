@@ -113,7 +113,7 @@ return pdfBytes as unknown as Uint8Array
 
 export async function sharePDF(pdfBytes: Uint8Array, filename: string): Promise<void> {
   try {
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+    const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
     const file = new File([blob], filename, { type: 'application/pdf' })
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file], title: filename })
